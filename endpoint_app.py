@@ -15,16 +15,13 @@ it also handles a pool of workers somehow TODO
 from datetime import datetime, timedelta
 from flask import *
 import requests
-from urllib.request import urlopen, Request
-import hashlib
 from uuid import uuid4 as uuid
 import json
-import base64
-
-import time
 import atexit
+import spawner
 
 from apscheduler.schedulers.background import BackgroundScheduler
+import boto3
 
 
 app = Flask(__name__)
@@ -33,6 +30,7 @@ jobs_queue = []
 jobs_completed= []
 
 num_workers = 0
+workers = {}
 maxNumOfWorkers = 0
 
 
@@ -45,6 +43,16 @@ def limit_requests():
     '''TODO: implement internal logic
     '''
     pass
+
+
+#TODO check that works!
+@app.route('/jobs/terminate/<instance_id>', methods=['POST'])
+def terminate_worker(instance_id):
+    if instance_id in workers:
+        workers[instance_id].terminate()
+        workers.pop(instance_id)
+        
+    raise Exception(f'Big Balagan! worker {instance_id} is not in workers!')
 
 
 @app.route('/jobs/updateResult', methods=['PUT'])
@@ -121,9 +129,6 @@ def try_get_node_quota():
         return {'possible': True}
     return {'possible': False}
 
-def spawn_worker():
-    pass
-
 def check_workers_state():
     # no jobs no cry
     if len(jobs_queue) == 0:
@@ -132,13 +137,13 @@ def check_workers_state():
     first_job_time = datetime.strptime(jobs_queue[0], "%Y-%m-%d %H:%M:%S.%f")
     if datetime.now - first_job_time > timedelta(seconds=15):
         if num_workers < maxNumOfWorkers:
-            spawn_worker()
+            spawner.spawn_worker()
         else:
             try:
                 response = requests.get(f'http://{other_endpoint}/jobs/getQuota', headers={'Connection':'close'})
                 if response.status_code == 200 and response.json()['possible'] == True:
                     maxNumOfWorkers+=1
-                    spawn_worker()
+                    spawner.spawn_worker()
             except:
                 pass
 

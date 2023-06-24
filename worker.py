@@ -17,8 +17,16 @@ import time
 
 
 class Worker:
-    def __init__(self, nodes=['localhost:8000']):
-        self.nodes = nodes
+    def __init__(self, instance_id='1', parent='localhost:8000', other='localhost:8001'):
+        self.instance_id = instance_id
+        self.parent = parent
+        self.other = other
+
+    def sendTerminate(self):
+        resp = requests.post(f'http://{self.parent}/jobs/terminate/{self.instance_id}')
+        return resp.status_code == 200
+            
+
 
     def work(self, buffer, iterations):
         output = hashlib.sha512(buffer.encode('utf-8')).digest()
@@ -29,7 +37,7 @@ class Worker:
     def loop(self):
         last_job = datetime.now()
         while datetime.now() - last_job < timedelta(minutes=10):
-            for node in self.nodes:
+            for node in [self.parent, self.other]:
                 # get a job
                 response = requests.get(f'http://{node}/jobs/getJob', headers={'Connection':'close'})
                 # if valid
@@ -45,10 +53,23 @@ class Worker:
                                                                 'complete_time': str(time.time())
                                                                 }), headers={'Connection':'close'})
                             last_job = datetime.now()
+
+                            time.sleep(10)
                     except:
                         print("ERROR in loading json")
+        
+        if self.sendTerminate():
+            print(f"Worker {self.instance_id} is terminating!")
+        else:
+            print('Terminating failed!')
+            
 
 if __name__ == '__main__':
-    worker = Worker(['localhost:8000', 
-                     'localhost:8001'])
+    import argparse
+    parser = argparse.ArgumentParser(description='HW2 Worker usage')
+    parser.add_argument('--parent', dest='parent', default='localhost:8000' required=True)
+    parser.add_argument('--other', dest='other', default='localhost:8001' required=True)
+    parser.add_argument('--instance-id', dest='instance_id', required=True)
+    args = parser.parse_args()
+    worker = Worker(args.instance_id, args.nodes)
     worker.loop()
