@@ -101,8 +101,8 @@ IP_LIST=("$PUBLIC_IP_1" "$PUBLIC_IP_2")
 for IP in "${IP_LIST[@]}"; do
     # Copy setup file
     echo "Copying setup files to $IP..."
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" endpoint_setp.sh ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" worker_setp.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/endpoint_setp.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/worker_setp.sh ubuntu@$IP:/home/ubuntu/
 
     echo "Copying config file to $IP..."
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" config.json ubuntu@$IP:/home/ubuntu/
@@ -112,8 +112,8 @@ for IP in "${IP_LIST[@]}"; do
 
     echo "Copying code to production @ $IP"
     # scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" server.py ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" endpoint_app.py ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" worker.py ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/endpoint_app.py ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/worker.py ubuntu@$IP:/home/ubuntu/
 
     echo "Config file copied to $IP."
 
