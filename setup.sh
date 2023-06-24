@@ -15,11 +15,10 @@
 sudo apt update
 sudo apt install awscli zip
 sudo apt install jq
-aws configure
+
 # Configure AWS setup (keys, region, etc)
-# aws configure set aws-access-key $ACCESS_KEY
-# aws configure set aws-secret-access-key $SECRET_KEY
-# aws configure set region $REGION
+aws configure
+
 KEY_NAME="ex2-key-`date +'%N'`"
 KEY_PEM="$KEY_NAME.pem"
 
@@ -100,8 +99,8 @@ IP_LIST=("$PUBLIC_IP_1" "$PUBLIC_IP_2")
 for IP in "${IP_LIST[@]}"; do
     # Copy setup file
     echo "Copying setup files to $IP..."
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/endpoint_setp.sh ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/worker_setp.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/endpoint_setup.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/worker_setup.sh ubuntu@$IP:/home/ubuntu/
     echo "Copying config file to $IP..."
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" config.json ubuntu@$IP:/home/ubuntu/
 
@@ -109,7 +108,6 @@ for IP in "${IP_LIST[@]}"; do
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" $KEY_PEM ubuntu@$IP:/home/ubuntu/
 
     echo "Copying code to production @ $IP"
-    # scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" server.py ubuntu@$IP:/home/ubuntu/
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/endpoint_app.py ubuntu@$IP:/home/ubuntu/
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/worker.py ubuntu@$IP:/home/ubuntu/
 
@@ -124,27 +122,11 @@ for IP in "${IP_LIST[@]}"; do
 EOF
 done
 
-#run app on node 1
- ssh -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=10" ubuntu@$PUBLIC_IP_1 <<EOF
-    # run app
-    # nohup python3 server.py &>server.log &
-    sudo nohup python3 endpoint_app.py --port 8000 --other $PUBLIC_IP_2:8000  &>server.log &
-    exit
-EOF
+# Save IPS to config file
+jq -n \
+    --arg v1 "$PUBLIC_IP_1" \
+    --arg v2 "$PUBLIC_IP_2" \
+    '{ip1: $v1, ip2: $v2}' > instances.json
 
-#run app on node 2
- ssh -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=10" ubuntu@$PUBLIC_IP_2 <<EOF
-    # run app
-    # nohup python3 server.py &>server.log &
-    sudo nohup python3 endpoint_app.py --port 8000 --other $PUBLIC_IP_1:8000  &>server.log &
-    exit
-EOF
-    
-
-
-
-echo "test that it all worked"
-for ip in "${IP_LIST[@]}"; do
-    echo "Test $ip"
-    curl  --retry-connrefused --retry 10 --retry-delay 1  http://$ip:8000
-done
+chmod u+x run.sh
+echo "Setup is done!"

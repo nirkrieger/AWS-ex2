@@ -67,8 +67,8 @@ class Worker:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='HW2 Worker usage')
-    parser.add_argument('--parent', dest='parent', default='localhost:8000' required=True)
-    parser.add_argument('--other', dest='other', default='localhost:8001' required=True)
+    parser.add_argument('--parent', dest='parent', default='localhost:8000', required=True)
+    parser.add_argument('--other', dest='other', default='localhost:8001', required=True)
     parser.add_argument('--instance-id', dest='instance_id', required=True)
     args = parser.parse_args()
     worker = Worker(args.instance_id, args.nodes)

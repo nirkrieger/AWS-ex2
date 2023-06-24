@@ -1,18 +1,19 @@
 # AWS-ex2
-## Introduction
-### In general?
->In this exercise, you’ll need to build a queue & work management system for parallel processing.
-Assume that you need to run a computation over data submitted by users. For the purpose of this exercise, we’ll assume that they upload a small binary data (16 – 256 KB) and we need to compute some number of SHA512 iterations on the data.
-### endpoints
->You’ll need to create a system, which will offer the following endpoints:
-```PUT /enqueue?iterations=num```
- with the body containing the actual data.
-The response for this endpoint would be the id of the submitted work (to be used later)
-```POST /pullCompleted?top=num```
-return the latest completed work items (the final value for the work and the work id). ```
+## Instructions
+1. Connect to an EC2 instance.
+2. git clone https://github.com/nirkrieger/AWS-ex2.git
+2. deploy code with setup.sh
+3. run.sh
 
-## Solution
-2 ec2 instances:
+## File Content
+- **setup.sh** -  used for code deployment.  access keys are need to be set manually (aws configure is part of the script.)
+- **endpoint_setup.sh** - bash script that sets up the node instances.
+- **endpoint_app.py** - the python code running the flask server and the actual logic.
+- **spawner.py** - module responsible for spawning new workers
+- **worker_setp.sh** - bash script that sets up the worker instances.
+- **worker.py** - worker application.
 
-1. enqueue instance - Flask server with route of enqueue, method PUT
-2. pullCompleted 
+## Failure Modes
+1. This code assumes that endpoint ips do not change. It will break if they do.
+2. This code assumes that nodes are accessible, it is not resilient to network faults.
+3. It also assumes no memory loss, as jobs are stored in a list.
