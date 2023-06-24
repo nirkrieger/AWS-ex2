@@ -18,7 +18,7 @@ import requests
 from uuid import uuid4 as uuid
 import json
 import atexit
-import spawner
+import code.spawner as spawner
 
 from apscheduler.schedulers.background import BackgroundScheduler
 import boto3
@@ -29,20 +29,10 @@ app = Flask(__name__)
 jobs_queue = []
 jobs_completed= []
 
-num_workers = 0
 workers = {}
 maxNumOfWorkers = 0
 
-
-#TODO - assign value to other
 other_endpoint = ''
-
-# class Worker:
-@app.before_request
-def limit_requests():
-    '''TODO: implement internal logic
-    '''
-    pass
 
 
 #TODO check that works!
@@ -88,7 +78,6 @@ def enqueue_job():
     id = str(uuid())
     jobs_queue.append({'id': id, 'iterations': iterations, 'data': buffer, 'time': datetime.now()})
 
-    # TODO make sure there are enough workers
     # return to client
     return id
 
@@ -124,7 +113,7 @@ def get_completed_jobs():
 @app.route('/jobs/getQuota', methods=['GET'])
 def try_get_node_quota():
     global maxNumOfWorkers
-    if num_workers < maxNumOfWorkers:
+    if len(workers) < maxNumOfWorkers:
         maxNumOfWorkers -= 1
         return {'possible': True}
     return {'possible': False}
@@ -136,14 +125,16 @@ def check_workers_state():
     
     first_job_time = datetime.strptime(jobs_queue[0], "%Y-%m-%d %H:%M:%S.%f")
     if datetime.now - first_job_time > timedelta(seconds=15):
-        if num_workers < maxNumOfWorkers:
-            spawner.spawn_worker()
+        if len(workers) < maxNumOfWorkers:
+            worker_instance = spawner.spawn_worker()
+            workers[worker_instance.instance_id] = worker_instance
         else:
             try:
                 response = requests.get(f'http://{other_endpoint}/jobs/getQuota', headers={'Connection':'close'})
                 if response.status_code == 200 and response.json()['possible'] == True:
                     maxNumOfWorkers+=1
-                    spawner.spawn_worker()
+                    worker_instance = spawner.spawn_worker()
+                    workers[worker_instance.instance_id] = worker_instance
             except:
                 pass
 
