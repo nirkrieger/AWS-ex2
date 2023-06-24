@@ -10,28 +10,28 @@
 
 
 
-KEY_NAME="cloud-course-`date +'%N'`"
-KEY_PEM="$KEY_NAME.pem"
-
-ACCESS_KEY="AKIATI5FPVXQLN5TEN5C"
-SECRET_KEY="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"
-REGION="us-east-1"
 
 # setup AWS CLI
+sudo apt update
 sudo apt install awscli zip
+sudo apt install jq
+aws configure
 # Configure AWS setup (keys, region, etc)
-aws configure set aws-access-key $ACCESS_KEY
-aws configure set aws-secret-access-key $SECRET_KEY
-aws configure set region $REGION
+# aws configure set aws-access-key $ACCESS_KEY
+# aws configure set aws-secret-access-key $SECRET_KEY
+# aws configure set region $REGION
+KEY_NAME="ex2-key-`date +'%N'`"
+KEY_PEM="$KEY_NAME.pem"
 
-    echo "create key pair $KEY_PEM to connect to instances and save locally"
+echo "create key pair $KEY_PEM to connect to instances and save locally"
 aws ec2 create-key-pair --key-name $KEY_NAME \
     | jq -r ".KeyMaterial" > $KEY_PEM
+
 
 # secure the key pair
 chmod 400 $KEY_PEM
 
-SEC_GRP="my-sg-`date +'%N'`"
+SEC_GRP="ex2_sec_grp"
 
 echo "setup firewall $SEC_GRP"
 aws ec2 create-security-group   \
@@ -57,9 +57,7 @@ aws ec2 authorize-security-group-ingress        \
 jq -n \
     --arg v1 "$KEY_NAME" \
     --arg v2 "$SEC_GRP" \
-    --arg v3 "$ACCESS_KEY" \
-    --arg v4 "$SECRET_KEY" \
-    '{key_name: $v1, sec_grp: $v2, access_key: $v3, secret_key: $v4}' > config.json
+    '{key_name: $v1, sec_grp: $v2}' > config.json
 
 UBUNTU_20_04_AMI="ami-042e8287309f5df03"
 
@@ -94,6 +92,7 @@ echo "Instance 1: $INSTANCE_ID_1 @ $PUBLIC_IP_1"
 echo "Instance 2: $INSTANCE_ID_2 @ $PUBLIC_IP_2"
 
 
+
 IP_LIST=("$PUBLIC_IP_1" "$PUBLIC_IP_2")
 
 #TODO change to 
@@ -103,7 +102,6 @@ for IP in "${IP_LIST[@]}"; do
     echo "Copying setup files to $IP..."
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/endpoint_setp.sh ubuntu@$IP:/home/ubuntu/
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /setups/worker_setp.sh ubuntu@$IP:/home/ubuntu/
-
     echo "Copying config file to $IP..."
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" config.json ubuntu@$IP:/home/ubuntu/
 
