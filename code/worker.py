@@ -43,7 +43,7 @@ class Worker:
                 # get a job
                 print(f'Request to {node}')
                 try:
-                    response = requests.get(f'http://{node}/jobs/getJob', headers={'Connection':'close'})
+                    response = requests.get(f'http://{node}/jobs/getJob')
                 except:
                     print(f'Connection to {node} failed!')
                     continue

@@ -13,7 +13,8 @@
                 "--port",
                 "8000",
                 "--other",
-                "localhost:8001"
+                "localhost:8001",
+                "--test"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
