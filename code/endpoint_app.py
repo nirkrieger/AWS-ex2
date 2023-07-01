@@ -10,7 +10,6 @@ This implements the endpoint node. It uses a Flask server listenening on 80 http
 
 - Sync with the other node
 
-it also handles a pool of workers somehow TODO
 '''
 from datetime import datetime, timedelta
 from flask import *
@@ -18,10 +17,9 @@ import requests
 from uuid import uuid4 as uuid
 import json
 import atexit
-import code.spawner as spawner
+from worker_manager import WorkerManager
 
 from apscheduler.schedulers.background import BackgroundScheduler
-import boto3
 
 
 app = Flask(__name__)
@@ -35,14 +33,10 @@ maxNumOfWorkers = 0
 other_endpoint = ''
 
 
-#TODO check that works!
 @app.route('/jobs/terminate/<instance_id>', methods=['POST'])
 def terminate_worker(instance_id):
-    if instance_id in workers:
-        workers[instance_id].terminate()
-        workers.pop(instance_id)
-        
-    raise Exception(f'Big Balagan! worker {instance_id} is not in workers!')
+    print(f"Terminating instance {instance_id}")
+    res = manager.terminate(instance_id)
 
 
 @app.route('/jobs/updateResult', methods=['PUT'])
@@ -51,6 +45,7 @@ def update_result():
     Update result from worker
     '''
     req = json.loads(request.data)
+    print(f"get results: {req}")
     jobs_completed.append({'id': req['id'], 'value': req['value']})
     return "thanks"
 
@@ -63,7 +58,9 @@ def get_job():
     '''
     if not jobs_queue:
         return 'No jobs available', 400
-    return jobs_queue.pop(0)
+    job = jobs_queue.pop(0)
+    print(f"Return new job: {job}")
+    return job
 
 @app.route('/enqueue', methods=['PUT'])
 def enqueue_job():
@@ -77,6 +74,7 @@ def enqueue_job():
     iterations = int(iterations)
     id = str(uuid())
     jobs_queue.append({'id': id, 'iterations': iterations, 'data': buffer, 'time': datetime.now()})
+    print(f"Got new job: {jobs_queue[-1]}")
 
     # return to client
     return id
@@ -99,6 +97,7 @@ def get_completed_jobs():
     top_k_jobs = jobs_completed[-int(k):]
     if top_k_jobs:
         return top_k_jobs
+    print("Don't have k jobs, ask other endpoint")
     # get other top k jobs
     if other_endpoint:
         try:
@@ -107,36 +106,44 @@ def get_completed_jobs():
                 return response.content
             return []
         except:
+            print(f'Connection to {other_endpoint} failed!')
             return []
     return []
 
 @app.route('/jobs/getQuota', methods=['GET'])
 def try_get_node_quota():
     global maxNumOfWorkers
-    if len(workers) < maxNumOfWorkers:
+    if manager.num_workers < maxNumOfWorkers:
         maxNumOfWorkers -= 1
         return {'possible': True}
     return {'possible': False}
 
 def check_workers_state():
+    global maxNumOfWorkers
     # no jobs no cry
     if len(jobs_queue) == 0:
         return
     
     first_job_time = datetime.strptime(jobs_queue[0], "%Y-%m-%d %H:%M:%S.%f")
+    to_spawn = False
     if datetime.now - first_job_time > timedelta(seconds=15):
-        if len(workers) < maxNumOfWorkers:
-            worker_instance = spawner.spawn_worker()
-            workers[worker_instance.instance_id] = worker_instance
+        if manager.num_workers() < maxNumOfWorkers: 
+            to_spawn = True
         else:
             try:
                 response = requests.get(f'http://{other_endpoint}/jobs/getQuota', headers={'Connection':'close'})
                 if response.status_code == 200 and response.json()['possible'] == True:
                     maxNumOfWorkers+=1
-                    worker_instance = spawner.spawn_worker()
-                    workers[worker_instance.instance_id] = worker_instance
+                    to_spawn = True
             except:
-                pass
+                print(f'Connection to {other_endpoint} failed!')
+    if to_spawn:
+        res = manager.spawn()
+        if res:
+            print('Worker spawned successfuly!')
+        else:
+            print('ERROR in spawning worker')
+                
 
 
 
@@ -150,8 +157,10 @@ if __name__ == '__main__':
     other_endpoint = args.other
     maxNumOfWorkers = args.max_num
 
-    # set background timer
+    ip = requests.get('https://api.ipify.org').content.decode('utf8')
 
+    manager = WorkerManager(parent=f'{ip}:{args.port}', other=other_endpoint)
+    # set background timer
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=check_workers_state, trigger="interval", seconds=60)
     scheduler.start()

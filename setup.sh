@@ -94,7 +94,7 @@ echo "Instance 2: $INSTANCE_ID_2 @ $PUBLIC_IP_2"
 
 IP_LIST=("$PUBLIC_IP_1" "$PUBLIC_IP_2")
 
-#TODO change to 
+# change to 
 
 for IP in "${IP_LIST[@]}"; do
     # Copy setup file

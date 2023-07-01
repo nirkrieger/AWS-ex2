@@ -24,4 +24,4 @@ aws ec2 authorize-security-group-ingress        \
 
 
 sudo apt install pip -y
-sudo pip install flask requests boto3 apscheduler paramiko
+pip install flask requests boto3 apscheduler paramiko
