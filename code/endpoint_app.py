@@ -157,7 +157,7 @@ def enqueue_job():
     '''
     buffer = request.get_data().decode('utf-8')
     iterations =  request.args.get('iterations')
-    if not iterations.isdigit():
+    if iterations is None or not iterations.isdigit():
         return 'Bad Input', 400
     iterations = int(iterations)
     id = str(uuid())
@@ -170,7 +170,7 @@ def enqueue_job():
 @app.route('/jobs/pullCompleted', methods=['POST'])
 def internal_get_completed_jobs():
     k = request.args.get('top')
-    if not k.isdigit():
+    if k is None or not k.isdigit():
         return "Bad Input", 400
     
     return jobs_completed[-int(k):]
@@ -179,7 +179,7 @@ def internal_get_completed_jobs():
 @app.route('/pullCompleted', methods=['POST'])
 def get_completed_jobs():
     k = request.args.get('top')
-    if not k.isdigit():
+    if k is None or not k.isdigit():
         return "Bad Input", 400
     k = int(k)
     top_k_jobs = jobs_completed[-int(k):]
@@ -212,20 +212,25 @@ def check_workers_state():
     if len(jobs_queue) == 0:
         return
     
-    first_job_time = datetime.strptime(jobs_queue[0], "%Y-%m-%d %H:%M:%S.%f")
+    first_job_time = jobs_queue[0]['time']
     to_spawn = False
     if datetime.now - first_job_time > timedelta(seconds=15):
+        print(f'It has been more than 15 seconds since last worked job.')
         if manager.num_workers() < maxNumOfWorkers: 
+            print('Sufficient quota for spawining a worker.')
             to_spawn = True
         else:
+            print(f'Insufficient quota, checking with {other_endpoint}')
             try:
                 response = requests.get(f'http://{other_endpoint}/jobs/getQuota', headers={'Connection':'close'})
                 if response.status_code == 200 and response.json()['possible'] == True:
+                    print(f'{other_endpoint} has given us an extra one')
                     maxNumOfWorkers+=1
                     to_spawn = True
             except:
                 print(f'Connection to {other_endpoint} failed!')
     if to_spawn:
+        print('Spawning a new worker...')
         res = manager.spawn()
         if res:
             print('Worker spawned successfuly!')
@@ -244,8 +249,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     other_endpoint = args.other
     maxNumOfWorkers = args.max_num
-
     ip = requests.get('https://api.ipify.org').content.decode('utf8')
+    print(f"Got IP {ip}")
 
     manager = WorkerManager(parent=f'{ip}:{args.port}', other=other_endpoint)
     # set background timer
@@ -257,4 +262,4 @@ if __name__ == '__main__':
     atexit.register(lambda: scheduler.shutdown())
 
 
-    app.run('0.0.0.0', port=args.port)
+    app.run('0.0.0.0', port=args.port)  
