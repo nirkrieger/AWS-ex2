@@ -1,7 +1,10 @@
 #!/bin/bash
 
-PUBLIC_IP_1=$(jq '.. | select(.ip1?) | .ip1' "instances.json")
-PUBLIC_IP_2=$(jq '.. | select(.ip2?) | .ip2' "instances.json")
+PUBLIC_IP_1=$(jq '.. | select(.ip1?) | .ip1' "instances.json" | tr -d '"')
+PUBLIC_IP_2=$(jq '.. | select(.ip2?) | .ip2' "instances.json" | tr -d '"') 
+
+KEY_NAME=$(jq '.. | select(.key_name?) | .key_name' "config.json")
+KEY_PEM="$(echo $KEY_NAME | tr -d '"').pem"     
 
 #run app on node1
 echo "Run endpoint application on Node 1 @ $PUBLIC_IP_1"
