@@ -73,9 +73,9 @@ RUN_INSTANCES=$(aws ec2 run-instances   \
 INSTANCE_ID_1=$(echo $RUN_INSTANCES | jq -r '.Instances[0].InstanceId')
 INSTANCE_ID_2=$(echo $RUN_INSTANCES | jq -r '.Instances[1].InstanceId')
 
-echo "Waiting for instance 1 creation..."
+echo "Waiting for instance $INSTANCE_ID_1 creation..."
 aws ec2 wait instance-running --instance-ids $INSTANCE_ID_1
-echo "Waiting for instance 2 creation..."
+echo "Waiting for instance $INSTANCE_ID_2 creation..."
 aws ec2 wait instance-running --instance-ids $INSTANCE_ID_2
 
 
@@ -99,8 +99,8 @@ IP_LIST=("$PUBLIC_IP_1" "$PUBLIC_IP_2")
 for IP in "${IP_LIST[@]}"; do
     # Copy setup file
     echo "Copying setup files to $IP..."
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/endpoint_setup.sh ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/worker_setup.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" code/endpoint_setup.sh ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" code/worker_setup.sh ubuntu@$IP:/home/ubuntu/
     echo "Copying config file to $IP..."
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" config.json ubuntu@$IP:/home/ubuntu/
 
@@ -108,14 +108,14 @@ for IP in "${IP_LIST[@]}"; do
     scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" $KEY_PEM ubuntu@$IP:/home/ubuntu/
 
     echo "Copying code to production @ $IP"
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/endpoint_app.py ubuntu@$IP:/home/ubuntu/
-    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" /code/worker.py ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" code/endpoint_app.py ubuntu@$IP:/home/ubuntu/
+    scp -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=60" code/worker.py ubuntu@$IP:/home/ubuntu/
 
     echo "Config file copied to $IP."
 
     echo "setup production environment"
     ssh -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=10" ubuntu@$IP <<EOF
-    chmod u+x endpoint_setup.sh
+    chmod u+x ./endpoint_setup.sh
     # run setup
     ./endpoint_setup.sh
     exit
@@ -128,5 +128,5 @@ jq -n \
     --arg v2 "$PUBLIC_IP_2" \
     '{ip1: $v1, ip2: $v2}' > instances.json
 
-chmod u+x run.sh
+chmod u+x ./run.sh
 echo "Setup is done!"
