@@ -58,12 +58,13 @@ jq -n \
     --arg v2 "$SEC_GRP" \
     '{key_name: $v1, sec_grp: $v2}' > config.json
 
-UBUNTU_20_04_AMI="ami-042e8287309f5df03"
+# UBUNTU_20_04_AMI="ami-042e8287309f5df03"
+UBUNTU_22_04_AMI="ami-09420243907777c4a"
 
 # Create two instances, for each endpoint.
 echo "Creating 2 Ubuntu 20.04 instance..."
 RUN_INSTANCES=$(aws ec2 run-instances   \
-    --image-id $UBUNTU_20_04_AMI        \
+    --image-id $UBUNTU_22_04_AMI        \
     --instance-type t3.micro            \
     --key-name $KEY_NAME                \
     --count 2                           \

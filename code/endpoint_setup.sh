@@ -24,4 +24,5 @@ aws ec2 authorize-security-group-ingress        \
 
 
 sudo apt install pip -y
+pip install pyOpenSSL --upgrade
 pip install flask requests boto3 apscheduler paramiko

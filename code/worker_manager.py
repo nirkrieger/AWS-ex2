@@ -24,7 +24,8 @@ class WorkerManager:
             print('Spawning a new instance')
             ec2 = boto3.resource('ec2')
             instance_params = {
-                    'ImageId': 'ami-042e8287309f5df03',  # Ubuntu 20.04 LTS 64-bit image
+                    # 'ImageId': 'ami-042e8287309f5df03',  # Ubuntu 20.04 LTS 64-bit image
+                    'ImageId': 'ami-09420243907777c4a',  # Ubuntu 22.10 LTS 64-bit image
                     'InstanceType': 't2.micro',
                     'KeyName': self.config['key_name'],  # Replace with your key pair name
                     'MinCount': 1,
