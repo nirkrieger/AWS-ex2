@@ -2,14 +2,14 @@
 ## Instructions
 1. Connect to an EC2 instance.
 2. git clone https://github.com/nirkrieger/AWS-ex2.git
-2. deploy code with setup.sh
-3. run.sh
+3. chmod u+x ./setup.sh & chmod u+x ./run.sh
+2. deploy code with ./setup.sh
+3. ./run.sh
 
 ## File Content
 - **setup.sh** -  used for code deployment.  access keys are need to be set manually (aws configure is part of the script.)
 - **endpoint_setup.sh** - bash script that sets up the node instances.
 - **endpoint_app.py** - the python code running the flask server and the actual logic.
-- **spawner.py** - module responsible for spawning new workers
 - **worker_setp.sh** - bash script that sets up the worker instances.
 - **worker.py** - worker application.
 
