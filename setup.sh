@@ -118,7 +118,7 @@ for IP in "${IP_LIST[@]}"; do
     ssh -i $KEY_PEM -o "StrictHostKeyChecking=no" -o "ConnectionAttempts=10" ubuntu@$IP <<EOF
     chmod u+x ./endpoint_setup.sh
     # run setup
-    ./endpoint_setup.sh
+    ./endpoint_setup.sh &> install.log
     exit
 EOF
 done
